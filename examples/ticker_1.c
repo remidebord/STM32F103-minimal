@@ -1,8 +1,8 @@
 #include "main.h"
 	
-Ticker tick(TIM16);
-DigitalOut led1(PC_8);
-DigitalOut led2(PC_9);
+Ticker tick(TIM2);
+DigitalOut led1(PA_8);
+DigitalOut led2(PC_13);
 
 void blink(void)
 {
@@ -11,11 +11,11 @@ void blink(void)
 
 int main(void)
 {
-	tick.attach_ms(&blink, 500);
+	tick.attach_ms(&blink, 1000);
 	
 	while(1)
 	{
 		led2 = !led2;
-		Delay(100);
+		Delay(500);
 	}
 }

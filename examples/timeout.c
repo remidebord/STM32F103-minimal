@@ -1,15 +1,15 @@
 #include "main.h"
 
-Timeout timeout(TIM17);
+Timeout timeout(TIM1);
 
-DigitalOut led1(PC_8);
-DigitalOut led2(PC_9);
+DigitalOut led1(PA_8);
+DigitalOut led2(PC_13);
 
 void blink(void)
 {
 	led2 = !led2;
 	
-	//timeout.start();
+	timeout.start();
 }
 
 int main(void)

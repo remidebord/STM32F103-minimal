@@ -3,7 +3,7 @@
  * \brief Digital API.
  * \author Rémi.Debord
  * \version 1.0
- * \date 31 décembre 2016
+ * \date 15 avril 2021
  *
  * Digital library (DigitalIn, DigitalOut and InterruptIn).
  *

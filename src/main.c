@@ -1,29 +1,29 @@
 #include "main.h"
 
-DigitalOut led1(PC_13);
-DigitalOut led2(PA_8);
-	
-// DigitalIn pushButton(PB_13);
-InterruptIn pushButton(PB_13);
+Timeout timeout(TIM1);
 
-void Push(void)
+DigitalOut led1(PA_8);
+DigitalOut led2(PC_13);
+
+void blink(void)
 {
 	led2 = !led2;
+	
+	timeout.start();
 }
 
 int main(void)
 {
-	pushButton.pull(Pull_Up);
-	pushButton.rise(&Push);
+	timeout.attach_ms(&blink, 2000);
+
+	led1 = 1;
+	led2 = 0;
+	
+	timeout.start();
 	
 	while(1)
 	{
-		led1 = 1;
-		Delay(1000);
-		led1 = 0;
-		Delay(1000);
 		
-// 		if(pushButton) led2 = 1;
-// 		else led2 = 0;
 	}
 }
+

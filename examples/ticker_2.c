@@ -1,10 +1,10 @@
 #include "main.h"
 	
-Ticker tick1(TIM17);
-DigitalOut led1(PC_8);
+Ticker tick1(TIM3);
+DigitalOut led1(PA_8);
 
-Ticker tick2(TIM16);
-DigitalOut led2(PC_9);
+Ticker tick2(TIM4);
+DigitalOut led2(PC_13);
 
 void blink1(void)
 {

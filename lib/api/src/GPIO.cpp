@@ -3,7 +3,7 @@
  * \brief GPIO API.
  * \author Rémi.Debord
  * \version 1.0
- * \date 31 décembre 2016
+ * \date 14 avril 2021
  *
  * GPIO library.
  *

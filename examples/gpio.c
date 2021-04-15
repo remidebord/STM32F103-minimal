@@ -1,10 +1,10 @@
 #include "main.h"
+
+DigitalOut led1(PC_13);
+DigitalOut led2(PA_8);
 	
-DigitalOut led1(PC_8);
-DigitalOut led2(PC_9);
-	
-// DigitalIn pushButton(PA_0);
-InterruptIn pushButton(PA_0);
+// DigitalIn pushButton(PB_13);
+InterruptIn pushButton(PB_13);
 
 void Push(void)
 {
@@ -13,12 +13,15 @@ void Push(void)
 
 int main(void)
 {
+	pushButton.pull(Pull_Up);
 	pushButton.rise(&Push);
 	
 	while(1)
 	{
-		led1 = !led1;
-		Delay(100);
+		led1 = 1;
+		Delay(1000);
+		led1 = 0;
+		Delay(1000);
 		
 // 		if(pushButton) led2 = 1;
 // 		else led2 = 0;
