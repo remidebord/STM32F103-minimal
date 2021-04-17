@@ -69,6 +69,7 @@ typedef enum {
 } PinName;
 
 typedef enum {
+	Pin_InputFloating  = 0x04, // Input floating (0100)
 	Pin_Input  = 0x08, // Input with pull-up / pull-down (1000)
 	Pin_Output = 0x03, // General purpose output push-pull (0011)
 	Pin_AF     = 0x0B, // Alternate function output Push-pull (1011)

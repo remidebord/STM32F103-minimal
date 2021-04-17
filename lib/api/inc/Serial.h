@@ -18,7 +18,6 @@ class Serial
 		
 		GPIO m_rx;
 		GPIO m_tx;
-		GPIO m_de;
 
 		uint32_t m_baudrate;
 		
@@ -32,7 +31,7 @@ class Serial
 	
 	public:
 		
-		Serial(USART_TypeDef* usart, PinName rx, PinName tx, PinName de = NC);
+		Serial(USART_TypeDef* usart, PinName rx, PinName tx);
 		
 		void baudrate(uint32_t value);
 		void format(uint8_t databits, SerialParity parity, uint8_t stopbits);

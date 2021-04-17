@@ -1,9 +1,9 @@
 /*!
  * \file Serial.cpp
  * \brief USART API.
- * \author Rémi.Debord
+ * \author Remi.Debord
  * \version 1.0
- * \date 07 janvier 2016
+ * \date 17 avril 2021
  *
  * USART library.
  *
@@ -17,11 +17,12 @@ extern "C"
 	static CircularBuffer* bufferTx[2];
 }
 
-Serial :: Serial(USART_TypeDef* usart, PinName rx, PinName tx, PinName de): m_rx(rx, Pin_AF), m_tx(tx, Pin_AF), m_de(de, Pin_AF),
-																																						m_circularRx(&m_bufferRx[0], USART_BUFFER_SIZE),
-																																						m_circularTx(&m_bufferTx[0], USART_BUFFER_SIZE)
+Serial :: Serial(USART_TypeDef* usart, PinName rx, PinName tx): m_rx(rx, Pin_InputFloating), m_tx(tx, Pin_AF),
+																																m_circularRx(&m_bufferRx[0], USART_BUFFER_SIZE),
+																																m_circularTx(&m_bufferTx[0], USART_BUFFER_SIZE)
 {
 	uint8_t index = 0;
+	uint8_t prescaler = 0;
 	
 	IRQn_Type irq = USART1_IRQn;
 	
@@ -35,10 +36,8 @@ Serial :: Serial(USART_TypeDef* usart, PinName rx, PinName tx, PinName de): m_rx
 		default: break;
 	}
 	
-	// Configure pins
-	if(rx != NC) Serial::pin(&m_rx);
+	// Configure Tx pin
 	if(tx != NC) Serial::pin(&m_tx);
-	if(de != NC) Serial::pin(&m_de);
 	
 	// Link circular buffer
 	if(usart == USART1) index = 0;
@@ -47,16 +46,15 @@ Serial :: Serial(USART_TypeDef* usart, PinName rx, PinName tx, PinName de): m_rx
 	bufferRx[index] = &m_circularRx;
 	bufferTx[index] = &m_circularTx;
 	
-	// USART clock: PCLK (APB) 48MHz
-	if(usart == USART1) RCC->CFGR3 &= ~RCC_CFGR3_USART1SW;
-	else if(usart == USART2) RCC->CFGR3 &= ~RCC_CFGR3_USART2SW;
+	// USART clock: USART1 64MHz (APB2), USART2 32 MHz (APB1)
+	if(m_usart == USART2) prescaler = 2;
+	else prescaler = 1;
 	
 	// USART configuration (9600 8 N 1)
-	m_usart->CR1 &= ~USART_CR1_OVER8;                        // Oversampling mode: 16
-	m_usart->BRR = SystemCoreClock / USART_BAUDRATE_DEFAULT; // Baudrate = fck (48MHz) / USARTDIV
-	m_usart->CR1 &= ~(USART_CR1_M0 | USART_CR1_M1);          // Databits: 8
-	m_usart->CR1 &= ~(USART_CR1_PCE | USART_CR1_PS);         // Parity: None
-	m_usart->CR2 &= ~USART_CR2_STOP;                         // Stopbits: 1
+	m_usart->BRR = SystemCoreClock / (prescaler * USART_BAUDRATE_DEFAULT); // Baudrate = fck (48MHz) / USARTDIV
+	m_usart->CR1 &= ~USART_CR1_M;                                          // Databits: 8
+	m_usart->CR1 &= ~(USART_CR1_PCE | USART_CR1_PS);                       // Parity: None
+	m_usart->CR2 &= ~USART_CR2_STOP;                                       // Stopbits: 1
 	
 	// USART mode (Rx and/or Tx)
 	m_usart->CR1 &= ~(USART_CR1_RE | USART_CR1_TE);
@@ -72,20 +70,6 @@ Serial :: Serial(USART_TypeDef* usart, PinName rx, PinName tx, PinName de): m_rx
 	
 	if(rx != NC) m_usart->CR1 |= USART_CR1_RXNEIE;
 	//if(tx != NC) m_usart->CR1 |= USART_CR1_TXEIE;
-	
-	// Disable Overrun
-	m_usart->CR3 |= USART_CR3_OVRDIS;
-	
-	// Driver enable configuration (RS485)
-	if(de != NC)
-	{
-		// de/assertion time (2 bit)
-		m_usart->CR1 |= USART_CR1_DEAT; 
-		m_usart->CR1 |= USART_CR1_DEDT;
-		
-		// Enable DE
-		m_usart->CR3 |= USART_CR3_DEM;
-	}
 	
 	// NVIC configuration
 	if(usart == USART1) irq = USART1_IRQn;
@@ -103,26 +87,21 @@ void Serial :: pin(GPIO* gpio)
 	// Set pin in push-pull, pull-down
 	gpio->type(Push_Pull);
 	gpio->pull(Pull_Down);
-	
-	// Set pin alternate function
-	switch(gpio->port())
-	{
-		case GPIOA_BASE: gpio->af(AF_1); break;
-		case GPIOB_BASE: gpio->af(AF_0); break;
-		default: break;
-	}
 }
 
 void Serial :: baudrate(uint32_t value)
 {	
+	uint8_t prescaler = 0;
+	
 	// Disable USART
 	m_usart->CR1 &= ~USART_CR1_UE;
 	
-	// Oversampling mode: 16
-	m_usart->CR1 &= ~USART_CR1_OVER8;
+	// USART clock: USART1 64MHz (APB2), USART2 32 MHz (APB1)
+	if(m_usart == USART2) prescaler = 2;
+	else prescaler = 1;
 	
-	// Baudrate = fck (48MHz) / USARTDIV
-	m_usart->BRR = SystemCoreClock / value;
+	// Baudrate = fck (64MHz) / USARTDIV
+	m_usart->BRR = SystemCoreClock / (prescaler * value);
 	
 	// Enable USART
 	m_usart->CR1 |= USART_CR1_UE;
@@ -138,18 +117,24 @@ void Serial :: format(uint8_t databits, SerialParity parity, uint8_t stopbits)
 	// Databits
 	switch(databits)
 	{
-		case 8: tmp = 0; break;
-		case 9: tmp = USART_CR1_M0; break;
-		case 7: tmp = USART_CR1_M1; break;
+		case 8: tmp = ~USART_CR1_M; break;
+		case 9: tmp = USART_CR1_M; break;
 		default: break; // 8 bits
 	}
 	
-	m_usart->CR1 &= ~(USART_CR1_M0 | USART_CR1_M1);
+	m_usart->CR1 &= ~USART_CR1_M;
 	m_usart->CR1 |= tmp;
 	
 	// Parity
 	m_usart->CR1 &= ~(USART_CR1_PCE | USART_CR1_PS);
-	m_usart->CR1 |= (uint32_t)parity << 8;
+	
+	switch(parity)
+	{
+		case None: break;
+		case Even: m_usart->CR1 |= (USART_CR1_PCE);break;
+		case Odd : m_usart->CR1 |= (USART_CR1_PCE | USART_CR1_PS); break;
+		default: break;
+	}
 	
 	// Stopbits
 	switch(stopbits)
@@ -195,11 +180,8 @@ uint16_t Serial :: read(uint8_t* buffer)
 	uint16_t i = 0;
 	
 	// Rx operation ongoing ?
-	if((m_usart->ISR & USART_ISR_IDLE) != 0)
+	if((m_usart->SR & USART_SR_IDLE) != 0)
 	{
-		// Clear flag
-		m_usart->ICR |= USART_ICR_IDLECF;
-		
 		length = m_circularRx.count();
 		
 		if(length != 0)
@@ -218,12 +200,12 @@ extern "C"
 {
 	void USART1_IRQHandler(void)
 	{
-		if((USART1->ISR & USART_ISR_TXE) != 0)
+		if((USART1->SR & USART_SR_TXE) != 0)
 		{
 			// Data to send ?
 			if(bufferTx[0]->count() && (bufferTx[0] != 0))
 			{
-				USART1->TDR = bufferTx[0]->get();
+				USART1->DR = bufferTx[0]->get();
 			}
 			else
 			{
@@ -232,23 +214,23 @@ extern "C"
 			}
 		}
 
-		if((USART1->ISR & USART_ISR_RXNE) != 0)
+		if((USART1->SR & USART_SR_RXNE) != 0)
 		{
 			if(bufferRx[0] != 0)
 			{
-				bufferRx[0]->put(USART1->RDR);
+				bufferRx[0]->put(USART1->DR);
 			}
 		}
 	}
 	
 	void USART2_IRQHandler(void)
 	{
-		if((USART2->ISR & USART_ISR_TXE) != 0)
+		if((USART2->SR & USART_SR_TXE) != 0)
 		{
 			// Data to send ?
 			if(bufferTx[1]->count() && (bufferTx[1] != 0))
 			{
-				USART2->TDR = bufferTx[1]->get();
+				USART2->DR = bufferTx[1]->get();
 			}
 			else
 			{
@@ -257,11 +239,11 @@ extern "C"
 			}
 		}
 
-		if((USART2->ISR & USART_ISR_RXNE) != 0)
+		if((USART2->SR & USART_SR_RXNE) != 0)
 		{
 			if(bufferRx[1] != 0)
 			{
-				bufferRx[1]->put(USART2->RDR);
+				bufferRx[1]->put(USART2->DR);
 			}
 		}
 	}
