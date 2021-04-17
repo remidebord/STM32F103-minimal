@@ -1,9 +1,9 @@
 /*!
  * \file Analog.cpp
  * \brief Analog API.
- * \author Rémi.Debord
+ * \author Remi.Debord
  * \version 1.0
- * \date 05 janvier 2016
+ * \date 17 avril 2021
  *
  * Analog library (ADC and DAC).
  *
@@ -11,72 +11,79 @@
 
 #include "Analog.h"
 
-__IO uint8_t AnalogIn::m_channels = 0;
-__IO uint8_t AnalogIn::m_rank[ADC_CHANNELS_MAX] = {0};
+__IO uint8_t AnalogIn::m_ranks = 0;
 __IO uint16_t AnalogIn::m_value[ADC_CHANNELS_MAX] = {0};
 
 AnalogIn :: AnalogIn(PinName pin) : GPIO(pin, Pin_AN)
-{
-	uint8_t i = 0;
-	
-	this->pull(Pull_None);
-	
-	if((ADC1->CR & ADC_CR_ADSTART) != 0)
+{	
+	// ADC up ?
+	if((ADC1->CR2 & ADC_CR2_ADON) != 0)
 	{
-		// Stop conversion
-		ADC1->CR |= ADC_CR_ADSTP;
+		// Stop ADC/conversion
+		ADC1->CR2 &= ~ADC_CR2_ADON;
 		
 		// Wait ADC
-		while((ADC1->CR & ADC_CR_ADSTP) != 0);
-	}
-	
-	if((ADC1->CR & ADC_CR_ADEN) != 0)
-	{		
-		// Disable ADC
-		ADC1->CR |= ADC_CR_ADDIS;
-		
-		// Wait ADC
-		while((ADC1->CR & ADC_CR_ADDIS) != 0);
+		while((ADC1->CR2 & ADC_CR2_ADON) != 0);
 	}
 	
 	// ADC configuration needed ?
-	if(ADC1->CFGR1 == 0)
+	if(ADC1->CR2 == 0)
 	{
 		// DMA access: disable
-		ADC1->CFGR1 &= (uint32_t)(~ADC_CFGR1_DMAEN);
+		ADC1->CR2 &= (uint32_t)(~ADC_CR2_DMA);
 	
 		AnalogIn::adc();
-		
-		// Initialize rank array
-		for(i = 0; i < ADC_CHANNELS_MAX; i++)
-		{
-			m_rank[i] = 0xFF;
-		}
 	}
 	
 	// Get ADC channel
 	m_channel = AnalogIn::channel(pin);
 	
 	// Store channel index
-	m_rank[m_channel] = m_channels++;
-	
-	// Sort rank of channel already configured
-	AnalogIn::sort((uint8_t*)&m_rank[0], ADC_CHANNELS_MAX);
+	m_rank = m_ranks++;
 	
 	// DMA configuration
 	AnalogIn::dma();	
 	
 	// Channel configuration
-	ADC1->CHSELR |= ((uint32_t)0x01 << m_channel);
+	
+	// Regular sequence configuration
+	if(m_ranks <= 7)
+	{
+		ADC1->SQR3 |= (m_channel << (m_rank * 5));
+	}
+	else if(m_ranks <= 13)
+	{
+		ADC1->SQR2 |= (m_channel << ((m_rank - 7) * 5));
+	}
+	else
+	{
+		ADC1->SQR1 |= (m_channel << ((m_rank - 13) * 5));
+	}
+	
+	// Set the number of channels to convert
+	ADC1->SQR1 &= ~ADC_SQR1_L;
+	ADC1->SQR1 |= ((m_ranks - 1) << ADC_SQR1_L_Pos);
+	
+	// Channel sampling time configuration (239.5 ADC clock cycles)
+	if(m_channel >= 10)
+	{
+		ADC1->SMPR1 |= (ADC_SMPR1_SMP10 << ((m_channel - 10) * 3));
+	}
+	else
+	{
+		ADC1->SMPR2 |= (ADC_SMPR2_SMP0 << (m_channel * 3));
+	}
+	
+	// Conversion time = (239.5 + 12.5) x (1 / 8MHz) = 31us
 	
 	// Enable ADC
-	ADC1->CR |= ADC_CR_ADEN;
+	ADC1->CR2 |= ADC_CR2_ADON;
 	
 	// Wait ADC
-	while((ADC1->ISR & ADC_ISR_ADRDY) == 0);
+  while((ADC1->CR2 & ADC_CR2_ADON) == 0);
 	
 	// Start conversion
-	ADC1->CR |= ADC_CR_ADSTART;
+	ADC1->CR2 |= ADC_CR2_SWSTART;
 }
 
 void AnalogIn :: adc(void)
@@ -84,42 +91,35 @@ void AnalogIn :: adc(void)
 	// Enable ADC1 clock
 	RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
 	
-	// ADC clock mode: PCLK/2 = 48MHz/2
-	ADC1->CFGR2 = ADC_CFGR2_JITOFFDIV2;
-	
-	// Sampling time configuration (239.5 ADC clock cycles)
-	ADC1->SMPR |= ADC_SMPR1_SMPR;
-	
-	// Conversion time = (239.5 + 12.5) x (1 / 24MHz) = 10us
-	
-	// Clear configuration register 1
-	ADC1->CFGR1 = 0;
+	// Clear configuration registers
+	ADC1->CR1 = 0;
+	ADC1->CR2 = 0;
 	
 	// Default:
-	// - Conversion mode: single
-	// - Overrun: use old data
+	// - Scan mode: enabled
 	// - Data alignment: right
 	// - Data resolution: 12 bits
-	// - Scan direction: upward
-	// - DMA configuration: one shot mode
-	// - DMA access : disabled
+	// - DMA access : enabled
 	
-	// Overrun: overwrite
-	ADC1->CFGR1 |= ADC_CFGR1_OVRMOD;
+	// Scan mode: enabled
+	ADC1->CR1 |= ADC_CR1_SCAN;
+	
+	// End Of Sequence conversion Interrupt (EOSI): enabled
+	ADC1->CR1 |= ADC_CR1_EOSIE;
 	
 	// Conversion mode: continuous
-	ADC1->CFGR1 |= ADC_CFGR1_CONT;
+	ADC1->CR2 |= ADC_CR2_CONT;
 	
-	// DMA configuration: circular mode
-	ADC1->CFGR1 |= ADC_CFGR1_DMACFG;
+	// DMA access: enable (only ADC1)
+	ADC1->CR2 |= ADC_CR2_DMA;
 	
-	// DMA access: enable
-	ADC1->CFGR1 |= ADC_CFGR1_DMAEN;
+	// ADC start: software event
+	ADC1->CR2 |= (ADC_CR2_EXTTRIG | ADC_CR2_EXTSEL_0 | ADC_CR2_EXTSEL_1 | ADC_CR2_EXTSEL_2);
 }
 
 void AnalogIn :: dma(void)
 {
-	// Disable DMA1 channel1
+	// Disable DMA1 channel
 	DMA1_Channel1->CCR &= (uint16_t)(~DMA_CCR_EN);
 	
 	// Enable DMA clock
@@ -146,7 +146,7 @@ void AnalogIn :: dma(void)
 	// Data transfer direction: peripheral to memory
 	
 	// Number of data to transfer
-	DMA1_Channel1->CNDTR = (uint32_t)m_channels;
+	DMA1_Channel1->CNDTR = (uint32_t)m_ranks;
 	
 	// Peripheral data register address
 	DMA1_Channel1->CPAR = (uint32_t)&ADC1->DR;
@@ -175,72 +175,23 @@ uint8_t AnalogIn :: channel(PinName pin)
 	return channel;
 }
 
-void AnalogIn :: sort(uint8_t* buffer, uint8_t size)
-{
-	uint8_t i = 0;
-	uint8_t j = 0;
-	
-	for(i = 0; i < size; i++)
-	{
-		if(buffer[i] != 0xFF)
-		{
-			buffer[i] = j++; 
-		}
-	}
-}	
-
 uint16_t AnalogIn :: read_b(void)
 {
-	// End of sequence ?
-	while((ADC1->ISR & ADC_ISR_EOSEQ) == 0); 
+	// End of sequence conversion (EOS = EOC) ?
+	while((ADC1->SR & ADC_SR_EOC) == 0); 
     
 	// Clear flags
-	ADC1->ISR |= ADC_ISR_EOSEQ;
+	ADC1->SR |= ADC_SR_EOC;
     
-	return m_value[m_rank[m_channel]];
+	return m_value[m_rank];
 }
 
 uint16_t AnalogIn :: read(void)
 {
-	return m_value[m_rank[m_channel]];
+	return m_value[m_rank];
 }
 
 AnalogIn :: operator uint16_t()
 {
-	return m_value[m_rank[m_channel]];
+	return m_value[m_rank];
 }
-
-/////////////////////
-
-AnalogOut :: AnalogOut(PinName pin) : GPIO(pin, Pin_AN)
-{
-	this->pull(Pull_None);
-
-	// Enable DAC clock
-	RCC->APB1ENR |= RCC_APB1ENR_DACEN;
-	
-	// Enable DAC channel 1
-	DAC->CR |= DAC_CR_EN1;
-}
-
-void AnalogOut :: write(uint16_t value)
-{
-	DAC->DHR12R1 = value;;
-}
-
-AnalogOut& AnalogOut ::  operator= (uint16_t value)
-{
-	DAC->DHR12R1 = value;
-	return *this;
-}
-
-uint16_t AnalogOut :: read()
-{
-	return DAC->DOR1;
-}
-
-AnalogOut :: operator uint16_t()
-{
-	return DAC->DOR1;
-}
-

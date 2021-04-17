@@ -92,17 +92,6 @@ typedef enum {
 } PinSpeed;
 
 typedef enum {
-	AF_0 = 0x00, // WKUP, EVENTOUT, TIM15, SPI1, TIM17, MCO, SWDAT, SWCLK, TIM14, BOOT, USART1, CEC, IR_OUT, SPI2
-	AF_1 = 0x01, // USART2, CEC, TIM3, USART1, USART2, EVENTOUT, I2C1, I2C2, TIM15
-	AF_2 = 0x02, // TIM2, TIM1, EVENTOUT, TIM16, TIM17
-	AF_3 = 0x03, // TS, I2C1, TIM15, EVENTOUT
-	AF_4 = 0x04, // TIM14
-	AF_5 = 0x05, // TIM16, TIM17
-	AF_6 = 0x06, // EVENTOUT
-	AF_7 = 0x07  // COMP1 OUT, COMP2 OUT
-} PinAF;
-
-typedef enum {
 	None = 0x00,
 	Even = 0x02,
 	Odd  = 0x03

@@ -373,6 +373,9 @@ static void SetSysClock(void)
 		
 	/* APB2 (PCLK2 = 64MHz / 1 = 64MHz) */
 	RCC->CFGR |= RCC_CFGR_PPRE2_DIV1;
+	
+	/* ADC1 (64MHz / 8 = 8 MHz) */
+	RCC->CFGR |= RCC_CFGR_ADCPRE_DIV8; 
 
 	/* PLL configuration (HSI clock / 2 x 16 = 64MHz) */
 	RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));

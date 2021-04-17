@@ -5,10 +5,10 @@
 #include "GPIO.h"
 
 /* defines ----------------------------------------------------------------- */
-#define ADC_CHANNELS_MAX 19
+#define ADC_CHANNELS_MAX 10
 #define ADC_CHANNEL_GPIOA_OFFSET 0  /* IN[0:7] */
 #define ADC_CHANNEL_GPIOB_OFFSET 8  /* IN[8:9] */
-#define ADC_CHANNEL_GPIOC_OFFSET 10 /* IN[10:15] */
+#define ADC_CHANNEL_GPIOC_OFFSET 14 /* IN[14:15] */
 
 /* class ------------------------------------------------------------------- */
 class AnalogIn : public GPIO
@@ -16,9 +16,9 @@ class AnalogIn : public GPIO
 	private:
 		
 		uint8_t m_channel;
-		
-		static __IO uint8_t m_channels;
-		static __IO uint8_t m_rank[ADC_CHANNELS_MAX];
+		uint8_t m_rank;
+	
+		static __IO uint8_t m_ranks;
 		static __IO uint16_t m_value[ADC_CHANNELS_MAX];
 		
 		static void adc(void);
