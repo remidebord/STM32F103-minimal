@@ -1,23 +1,25 @@
-#ifndef __WATCHDOG_H
-#define __WATCHDOG_H
+#ifndef __USB_H
+#define __USB_H
 
 /* includes ---------------------------------------------------------------- */
-#include "Common.h"
+#include "GPIO.h"
 
 /* defines ----------------------------------------------------------------- */
-#define IWDG_KR_WRITE	((uint16_t)0x5555)
-#define IWDG_KR_ENABLE	((uint16_t)0xCCCC)
-#define IWDG_KR_RELOAD	((uint16_t)0xAAAA)
 
 /* class ------------------------------------------------------------------- */
-class Watchdog
+class USB_VCP
 {
 	private:
 	
+		GPIO m_dp;
+		GPIO m_dm;
+	
 	public:
-		
-		Watchdog(uint32_t ms);
-		void reload(void);
+	
+		USB_VCP(PinName dp, PinName dm);
+	
+		void write(uint8_t* buffer, uint16_t length);
+		uint16_t read(uint8_t* buffer);
 };
 
 #endif

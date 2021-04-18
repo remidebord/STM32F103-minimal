@@ -572,6 +572,11 @@
               <FileType>8</FileType>
               <FilePath>.\lib\api\src\Serial.cpp</FilePath>
             </File>
+            <File>
+              <FileName>USB.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\lib\api\src\USB.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
