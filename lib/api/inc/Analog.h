@@ -30,7 +30,7 @@ class AnalogIn : public GPIO
 	
 		AnalogIn(PinName pin);
 	
-		uint16_t read_b();
+		//uint16_t read_b();
 		uint16_t read();
 		operator uint16_t();	// Read (shorthand)
 };

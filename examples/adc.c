@@ -12,10 +12,10 @@ int main(void)
 {	
 	while(1)
 	{
-		value[0] = ain1.read_b();
-		value[1] = ain2.read_b();
-		value[2] = ain3.read_b();
-		value[3] = ain4.read_b();
-		value[4] = ain5.read_b();
+		value[0] = ain1.read();
+		value[1] = ain2.read();
+		value[2] = ain3.read();
+		value[3] = ain4.read();
+		value[4] = ain5.read();
 	}
 }

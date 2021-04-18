@@ -39,7 +39,7 @@ Timer :: Timer(TIM_TypeDef* timer)
 	// Clock division: default
 	m_timer->CR1 &= ~TIM_CR1_CKD;
 	
-	// Prescaler: 64 MHz / 1000000 (1us)
+	// Prescaler: 72 MHz / 1000000 (1us)
 	m_timer->PSC = (SystemCoreClock / 1000000) - 1;
 	
 	// Autoreload value
@@ -125,7 +125,7 @@ Ticker :: Ticker(TIM_TypeDef* timer) : Timer(timer)
 
 void Ticker :: attach_ms(void(*f)(void), uint32_t ms)
 {
-	// Prescaler: 64 MHz / 10000 (100 us)
+	// Prescaler: 72 MHz / 10000 (100 us)
 	m_timer->PSC = (SystemCoreClock / 10000) - 1; 
 	
 	// Autoreload value
@@ -142,7 +142,7 @@ void Ticker :: attach_ms(void(*f)(void), uint32_t ms)
 
 void Ticker :: attach_us(void(*f)(void), uint32_t us)
 {
-	// Prescaler: 64 MHz / 1000000 (1us)
+	// Prescaler: 72 MHz / 1000000 (1us)
 	m_timer->PSC = (SystemCoreClock / 1000000) - 1;
 	
 	// Autoreload value
@@ -173,7 +173,7 @@ Timeout :: Timeout(TIM_TypeDef* timer) : Timer(timer)
 
 void Timeout :: attach_ms(void(*f)(void), uint32_t ms)
 {
-	// Prescaler: 64 MHz / 10000 (100 us)
+	// Prescaler: 72 MHz / 10000 (100 us)
 	m_timer->PSC = (SystemCoreClock / 10000) - 1; 
 	
 	// Autoreload value
@@ -187,7 +187,7 @@ void Timeout :: attach_ms(void(*f)(void), uint32_t ms)
 
 void Timeout :: attach_us(void(*f)(void), uint32_t us)
 {
-	// Prescaler: 64 MHz / 1000000 (1us)
+	// Prescaler: 72 MHz / 1000000 (1us)
 	m_timer->PSC = (SystemCoreClock / 1000000) - 1;
 	
 	// Autoreload value

@@ -1,27 +1,21 @@
 #include "main.h"
 
-// Serial port config
-Serial serial(USART1, PA_10, PA_9);
-//Serial serial(USART2, PA_3, PA_2);
+#include "usb_device.h"
+#include "usbd_cdc_if.h"
 
-uint8_t buffer[128] = {0};
-uint16_t length = 0;
+uint8_t buffer[] = "Hello World!\n";
 
 int main(void)
 {
-	// Change baudrate (default: 9600)
-	serial.baudrate(115200);
-
-	serial.write((uint8_t*)("Hello world!"), 12);
+	/* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+	
+	MX_USB_DEVICE_Init();
 	
 	while(1)
 	{
-		length = serial.read(buffer);
-		
-		// echo mode
-		if(length)
-		{
-			serial.write(buffer, length);
-		}
+		CDC_Transmit_FS(&buffer[0], sizeof(buffer));
+		Delay(1000);
 	}
 }

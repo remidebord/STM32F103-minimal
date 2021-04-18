@@ -115,6 +115,10 @@ void AnalogIn :: adc(void)
 	
 	// ADC start: software event
 	ADC1->CR2 |= (ADC_CR2_EXTTRIG | ADC_CR2_EXTSEL_0 | ADC_CR2_EXTSEL_1 | ADC_CR2_EXTSEL_2);
+	
+	// NVIC configuration
+//	NVIC_SetPriority(ADC1_2_IRQn, 1); // High: 0, Low: 3
+//	NVIC_EnableIRQ(ADC1_2_IRQn);
 }
 
 void AnalogIn :: dma(void)
@@ -175,16 +179,16 @@ uint8_t AnalogIn :: channel(PinName pin)
 	return channel;
 }
 
-uint16_t AnalogIn :: read_b(void)
-{
-	// End of sequence conversion (EOS = EOC) ?
-	while((ADC1->SR & ADC_SR_EOC) == 0); 
-    
-	// Clear flags
-	ADC1->SR |= ADC_SR_EOC;
-    
-	return m_value[m_rank];
-}
+//uint16_t AnalogIn :: read_b(void)
+//{
+//	// End of sequence conversion (EOS = EOC) ?
+//	while((ADC1->SR & ADC_SR_EOC) == 0); 
+//    
+//	// Clear flags
+//	ADC1->SR |= ADC_SR_EOC;
+//    
+//	return m_value[m_rank];
+//}
 
 uint16_t AnalogIn :: read(void)
 {
@@ -195,3 +199,14 @@ AnalogIn :: operator uint16_t()
 {
 	return m_value[m_rank];
 }
+
+//extern "C"
+//{	
+//	void ADC1_2_IRQHandler(void)
+//	{		
+//		if((ADC1->SR & ADC_SR_EOC) != 0)
+//		{			
+//			ADC1->SR &= ~ADC_SR_EOC;
+//		}
+//	}
+//}

@@ -139,7 +139,7 @@
                is no need to call the 2 first functions listed above, since SystemCoreClock
                variable is updated automatically.
   */
-uint32_t SystemCoreClock = 64000000;
+uint32_t SystemCoreClock = 72000000;
 const uint8_t AHBPrescTable[16U] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
 const uint8_t APBPrescTable[8U] =  {0, 0, 0, 0, 1, 2, 3, 4};
 
@@ -195,7 +195,7 @@ void SystemInit (void)
 	SetSysClock();
 	
 	/* !important (at this stage global variables are not initialized!) */
-	SystemCoreClock = 64000000;
+	SystemCoreClock = 72000000;
 	
 	/* SysTick - 1ms */
 	SysTick_Config(SystemCoreClock / 1000);
@@ -355,31 +355,44 @@ void SystemCoreClockUpdate (void)
 static void SetSysClock(void)
 {
 /******************************************************************************/
-/*            PLL (clocked by HSI) used as System clock source                */
+/*            PLL (clocked by HSE) used as System clock source                */
 /******************************************************************************/
 
 	/* At this stage the HSI is already enabled and used as System clock source */
   
+	/* HSE clock enable */
+	RCC->CR |= RCC_CR_HSEON;
+	
+	/* Wait till HSE is ready */
+	while((RCC->CR & RCC_CR_HSERDY) == 0){};
+		
+	/* HSI clock disable */
+	RCC->CR &= ~RCC_CR_HSION;
+	
 	/* SYSCLK, HCLK, PCLK configuration ----------------------------------------*/
 	
 	/* Enable Prefetch Buffer and set Flash Latency */
 	FLASH->ACR = FLASH_ACR_PRFTBE | FLASH_ACR_LATENCY;
 
-	/* HCLK = SYSCLK (HCLK = 64MHz) */
+	/* HCLK = SYSCLK (HCLK = 72MHz) */
 	RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
        
-	/* APB1 (PCLK1 = 64MHz / 2 = 32MHz) */
+	/* APB1 (PCLK1 = 72MHz / 2 = 36MHz) */
 	RCC->CFGR |= RCC_CFGR_PPRE1_DIV2;
 		
-	/* APB2 (PCLK2 = 64MHz / 1 = 64MHz) */
+	/* APB2 (PCLK2 = 72MHz / 1 = 72MHz) */
 	RCC->CFGR |= RCC_CFGR_PPRE2_DIV1;
 	
-	/* ADC1 (64MHz / 8 = 8 MHz) */
+	/* ADC1 (72MHz / 8 = 9 MHz) */
 	RCC->CFGR |= RCC_CFGR_ADCPRE_DIV8; 
 
-	/* PLL configuration (HSI clock / 2 x 16 = 64MHz) */
-	RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
-	RCC->CFGR |= RCC_CFGR_PLLMULL16;	
+	/* PLL configuration (HSE clock / 1 x 9 = 72MHz) */
+	RCC->CFGR |= RCC_CFGR_PLLSRC;      // source: HSE clock */
+	RCC->CFGR &= ~(RCC_CFGR_PLLXTPRE); // PREDIV1 : / 1
+	RCC->CFGR |= RCC_CFGR_PLLMULL9;	   // Clock multiply by: 9
+	
+	/* USB clock: 72MHz / 1.5 = 48MHz */
+	RCC->CFGR &= ~RCC_CFGR_USBPRE;
             
 	/* Enable PLL */
 	RCC->CR |= RCC_CR_PLLON;
@@ -387,7 +400,7 @@ static void SetSysClock(void)
 	/* Wait till PLL is ready */
 	while((RCC->CR & RCC_CR_PLLRDY) == 0){};
 
-	/* Select PLL as system clock source (SYSCLK = 64MHz) */
+	/* Select PLL as system clock source (SYSCLK = 72MHz) */
 	RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
 	RCC->CFGR |= (uint32_t)RCC_CFGR_SW_PLL;    
 
