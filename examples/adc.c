@@ -1,5 +1,5 @@
 #include "main.h"
-	
+
 uint16_t value[5] = {0};
 
 AnalogIn ain1(PB_1); // Channel 9

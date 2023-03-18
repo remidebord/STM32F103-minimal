@@ -8,7 +8,7 @@ DigitalOut led2(PC_13);
 void blink(void)
 {
 	led2 = !led2;
-	
+
 	timeout.start();
 }
 
@@ -18,11 +18,11 @@ int main(void)
 
 	led1 = 1;
 	led2 = 0;
-	
+
 	timeout.start();
-	
+
 	while(1)
 	{
-		
+
 	}
 }

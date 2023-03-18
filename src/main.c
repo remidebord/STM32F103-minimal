@@ -1,25 +1,29 @@
 #include "main.h"
 
-USB_VCP vcp(PA_12, PA_11);
+DigitalOut led1(PC_13);
+DigitalOut led2(PA_8);
 
-uint8_t hello[] = "Hello World!\n";
+// DigitalIn pushButton(PB_13);
+InterruptIn pushButton(PB_13);
 
-uint8_t buffer[256] = {0};
-uint16_t length = 0;
-
-int main(void)
-{	
-	vcp.write(&hello[0], sizeof(hello));
-	Delay(1000);
-	
-	while(1)
-	{
-		length = vcp.read(&buffer[0]);
-		
-		if(length != 0)
-		{
-			vcp.write(&buffer[0], length);
-		}
-	}
+void Push(void)
+{
+	led2 = !led2;
 }
 
+int main(void)
+{
+	pushButton.pull(Pull_Up);
+	pushButton.rise(&Push);
+
+	while(1)
+	{
+		led1 = 1;
+		Delay(1000);
+		led1 = 0;
+		Delay(1000);
+
+// 		if(pushButton) led2 = 1;
+// 		else led2 = 0;
+	}
+}

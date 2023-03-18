@@ -11,17 +11,14 @@ int main(void)
 {
 	// Change baudrate (default: 9600)
 	serial.baudrate(115200);
-
 	serial.write((uint8_t*)("Hello world!"), 12);
-	
+
 	while(1)
 	{
 		length = serial.read(buffer);
-		
+
 		// echo mode
 		if(length)
-		{
 			serial.write(buffer, length);
-		}
 	}
 }

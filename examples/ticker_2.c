@@ -1,5 +1,5 @@
 #include "main.h"
-	
+
 Ticker tick1(TIM3);
 DigitalOut led1(PA_8);
 
@@ -20,7 +20,7 @@ int main(void)
 {
 	tick1.attach_ms(&blink1, 500);
 	tick2.attach_ms(&blink2, 2000);
-	
+
 	while(1)
 	{
 	

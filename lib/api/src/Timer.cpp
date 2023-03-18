@@ -17,9 +17,9 @@ extern "C"
 }
 
 Timer :: Timer(TIM_TypeDef* timer)
-{ 	
+{
 	m_timer = timer;
-	
+
 	// Enable timer clock
 	switch((uint32_t)timer)
 	{
@@ -29,25 +29,25 @@ Timer :: Timer(TIM_TypeDef* timer)
 		case TIM4_BASE : RCC->APB1ENR |= RCC_APB1ENR_TIM4EN; break;
 		default: break;
 	}
-	
+
 	// Center-aligned mode: edge aligned
 	m_timer->CR1 &= ~TIM_CR1_CMS;
-	
+
 	// Direction: upcounter
 	m_timer->CR1 &= ~TIM_CR1_DIR;
-	
+
 	// Clock division: default
 	m_timer->CR1 &= ~TIM_CR1_CKD;
-	
+
 	// Prescaler: 72 MHz / 1000000 (1us)
 	m_timer->PSC = (SystemCoreClock / 1000000) - 1;
-	
+
 	// Autoreload value
 	m_timer->ARR = 0xFFFF;
-	
+
 	// Repetition counter
 	m_timer->RCR = 0;
-	
+
 	// reload prescaler and repetition counter
 	m_timer->EGR |= TIM_EGR_UG;
 }
@@ -86,7 +86,7 @@ void Timer :: attach(void(*f)(void))
 {
 	IRQn_Type irq = TIM1_UP_IRQn;
 	uint8_t i = 0;
-	
+
 	switch((uint32_t)m_timer)
 	{
 		case TIM1_BASE : i = 0; irq = TIM1_UP_IRQn; break;
@@ -95,14 +95,14 @@ void Timer :: attach(void(*f)(void))
 		case TIM4_BASE : i = 3; irq = TIM4_IRQn; break;
 		default: break;
 	}
-	
+
 	// Set callback
 	updateCallback[i] = f;
-	
+
 	// NVIC configuration
 	NVIC_SetPriority(irq, 1); // High: 0, Low: 3
 	NVIC_EnableIRQ(irq);
-	
+
 	// Enable update interrupt
 	m_timer->DIER |= TIM_DIER_UIE;
 }
@@ -111,7 +111,7 @@ void Timer :: detach(void)
 {
 	// Disable update interrupt
 	m_timer->DIER &= ~TIM_DIER_UIE;
-	
+
 	// Clear update flag
 	m_timer->SR &= ~TIM_SR_UIF;
 }
@@ -234,37 +234,34 @@ PwmOut :: PwmOut(PinName pin, uint32_t frequency, TIM_TypeDef* timer, TimerChann
 	// GPIO configuration
 	this->type(Push_Pull);
 	this->pull(Pull_Up);
-	
+
 	// Timer configuration
 	if((m_frequency < PWMOUT_LOW_FREQUENCY)) prescaler = (SystemCoreClock / 100000);
-	
+
 	m_timer->PSC = prescaler - 1;
 	m_timer->ARR = ((SystemCoreClock / prescaler) / m_frequency) - 1;
-	
+
 	// Channel configuration
-	if(m_channel > 2)
-	{
+	if(m_channel > 2) {
 		// Capture compare mode: PWM1
 		m_timer->CCMR2 |= (TIM_CCMR2_OC3M_1 | TIM_CCMR2_OC3M_2) << ((~m_channel & 0x01) * 8);
-	}
-	else
-	{
+	} else {
 		// Capture compare mode: PWM1
 		m_timer->CCMR1 |= (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2) << ((~m_channel & 0x01) * 8);
 	}
-				
+
 	// Output compare polarity: low
 	m_timer->CCER |= TIM_CCER_CC1P << ((m_channel - 1) * 4);
-			
+
 	// Output state: enabled
 	m_timer->CCER |= TIM_CCER_CC1E << ((m_channel - 1) * 4);
-			
+
 	// Set duty cycle
 	this->write(m_dutyCycle);
 
 	// Enable timer	
 	m_timer->CR1 |= TIM_CR1_CEN;
-	
+
 	// Enable main output
 	m_timer->BDTR |= TIM_BDTR_MOE;
 }
@@ -272,16 +269,16 @@ PwmOut :: PwmOut(PinName pin, uint32_t frequency, TIM_TypeDef* timer, TimerChann
 void PwmOut :: frequency(uint32_t value)
 {
 	uint32_t prescaler = 1;
-	
+
 	// Timer configuration
 	if((m_frequency < PWMOUT_LOW_FREQUENCY)) prescaler = (SystemCoreClock / 100000);
-	
+
 	m_timer->PSC = prescaler - 1;
 	m_timer->ARR = ((SystemCoreClock / prescaler) / m_frequency) - 1;
-	
+
 	// reload prescaler and repetition counter
 	m_timer->EGR |= TIM_EGR_UG;
-	
+
 	// !important
 	this->write(m_dutyCycle);
 }
@@ -289,12 +286,12 @@ void PwmOut :: frequency(uint32_t value)
 void PwmOut :: write(uint8_t value)
 {
 	uint32_t pulseWidth = 0;
-	
+
 	// Overflow protection
 	if(value >= PWMOUT_DUTYCYCLE_MAX) value = PWMOUT_DUTYCYCLE_MAX;
-	
+
 	m_dutyCycle = value;
-	
+
 	// Compute pulse width
 	pulseWidth = (100 - m_dutyCycle) * (m_timer->ARR - 1) / 100;
 
@@ -311,7 +308,7 @@ void PwmOut :: write(uint8_t value)
 PwmOut& PwmOut :: operator= (uint8_t value)
 {
 	this->write(value);
-	
+
 	return *this;
 }
 
@@ -326,59 +323,47 @@ PwmOut :: operator uint8_t()
 }
 
 extern "C"
-{	
+{
 	void TIM1_UP_IRQHandler(void)
-	{		
-		if((TIM1->SR & TIM_SR_UIF) != 0)
-		{
+	{
+		if((TIM1->SR & TIM_SR_UIF) != 0) {
 			// Callback ?
 			if(updateCallback[0] != 0)
-			{
 				(*updateCallback[0])();
-			}
-			
+
 			TIM1->SR &= ~TIM_SR_UIF;
 		}
 	}
-	
+
 	void TIM2_IRQHandler(void)
 	{
-		if((TIM2->SR & TIM_SR_UIF) != 0)
-		{
+		if((TIM2->SR & TIM_SR_UIF) != 0) {
 			// Callback ?
 			if(updateCallback[1] != 0)
-			{
 				(*updateCallback[1])();
-			}
-			
+
 			TIM2->SR &= ~TIM_SR_UIF;
 		}
 	}
-	
+
 	void TIM3_IRQHandler(void)
 	{
-		if((TIM3->SR & TIM_SR_UIF) != 0)
-		{
+		if((TIM3->SR & TIM_SR_UIF) != 0) {
 			// Callback ?
 			if(updateCallback[2] != 0)
-			{
 				(*updateCallback[2])();
-			}
-			
+
 			TIM3->SR &= ~TIM_SR_UIF;
 		}
 	}
-	
+
 	void TIM4_IRQHandler(void)
 	{
-		if((TIM4->SR & TIM_SR_UIF) != 0)
-		{
+		if((TIM4->SR & TIM_SR_UIF) != 0) {
 			// Callback ?
 			if(updateCallback[3] != 0)
-			{
 				(*updateCallback[3])();
-			}
-			
+
 			TIM4->SR &= ~TIM_SR_UIF;
 		}
 	}
